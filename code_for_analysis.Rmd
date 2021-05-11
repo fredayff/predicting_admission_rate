@@ -1,0 +1,289 @@
+---
+title: "Predicting admission rates of colleges and universities in the United States"
+author: "YIFAN XU"
+date: "2020.6.19"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+
+```{r}
+library(car)
+library(DAAG)
+library(MASS)
+library(psych)
+```
+
+
+```{r}
+setwd("E:/302")
+sample1 <- read.csv(file.choose(), header=T)
+```
+
+
+```{r}
+# Divide the dataset into training and test sets
+set.seed(100)
+train_rows <- sample(rownames(sample1), dim(sample1)[1]*0.6)
+sample1_train <- sample1[train_rows, ]
+valid_rows <- setdiff(rownames(sample1), train_rows)
+sample1_valid <- sample1[valid_rows, ]
+```
+
+
+
+```{r}
+# Creat plots of the factors
+hist(sample1_train$COSTT4_A, breaks=10, main='Histogram of COSTT4_A', xlab="Average cost of attendance per academic year")
+hist(sample1_train$AVGFACSAL, breaks=10, main='Histogram of AVGFACSAL', xlab="Average faculty salary")
+hist(sample1_train$PFTFAC, breaks=10, main='Histogram of PFTFAC', xlab="Proportion of full time faculty members")
+hist(sample1_train$UG25ABV, breaks=10, main='Histogram of UG25ABV', xlab="Percentage of undergraduates 
+aged 25 and above")
+
+hist(sample1_train$PCTPELL, breaks=10, main='Histogram of PCTPELL', xlab="Percentage of undergraduates receiving Pell grant 
+(financial aid)")
+hist(sample1_train$INC_PCT_LO, breaks=10, main='Histogram of INC_PCT_LO', xlab="Percentage of aided students whose family 
+income is between $0-$30,000")
+hist(sample1_train$FEMALE, breaks=10, main='Histogram of FEMALE', xlab = "Proportion of student body that 
+is female")
+hist(sample1_train$PAR_ED_PCT_1STGEN, breaks=10, main='Histogram of PAR_ED_PCT_1STGEN', xlab="Percentage of first generation students")
+
+hist(sample1_train$MD_FAMINC, breaks=10, main='Histogram of MD_FAMINC', xlab="Median family income of students")
+hist(sample1_train$PCT_WHITE, breaks=10, main='Histogram of PCT_WHITE', xlab="Percent of the population from 
+students' zip codes that is White")
+hist(sample1_train$PCT_BLACK, breaks=10, main='Histogram of 
+PCT_BLACK', xlab="Percent of the population from 
+students' zip codes that is Black")
+hist(sample1_train$PCT_ASIAN, breaks=10, main='Histogram of PCT_ASIAN', xlab="Percent of the population from 
+students' zip codes that is Asians")
+
+hist(sample1_train$PCT_HISPANIC, breaks=10, main='Histogram of PCT_HISPANIC', xlab="Percent of the population from 
+students' zip codes that is Hispanic")
+hist(sample1_train$PCT_BA, breaks=10, main='Histogram of PCT_BA', xlab="Percent of students' zip codes 
+with a bachelor's degree over 25")
+hist(sample1_train$PCT_GRAD_PROF, breaks=10, main='Histogram of PCT_GRAD_PROF', xlab="Percent of students' zip codes
+over 25 with a professional degree")
+hist(sample1_train$PCT_BORN_US, breaks=10, main='Histogram of PCT_BORN_US', xlab="Percent of students' zip codes that was 
+born in the US")
+
+hist(sample1_train$POVERTY_RATE, breaks=10, main='Histogram of POVERTY_RATE', xlab="Poverty rate")
+hist(sample1_train$UNEMP_RATE, breaks=10, main='Histogram of UNEMP_RATE', xlab="Unemployment rate")
+
+hist(sample1_train$NUMBRANCH, breaks=10, main='Number of branch campuses', xlab="Number of branch campuses")
+hist(sample1_train$CONTROL, breaks=10, main='Control of institution', xlab="Public (1), Private non-profit (2), 
+Private for profit (3)")
+hist(sample1_train$HBCU, breaks=10, main='Historically Black College 
+and University', xlab="no (0),  yes (1)")
+
+hist(sample1_train$TRIBAL, breaks=10, main='Tribal college and university', xlab="University for native American 
+tribes (1) or not (0)")
+
+hist(sample1_train$PBI, breaks=10, main='Predominantly Black University', xlab="Currently predominantly serves black 
+community (1) or not (0)")
+
+hist(sample1_train$WOMENONLY, breaks=5, main='Women-only College', xlab="Women-only institution (1) or not (0)")
+hist(sample1_train$REGION, breaks=50, main='Regional location of institution', xlab="0: US Service Schools, 1: New England, 2: Mid East, 3: Great Lakes, 4: Plains, 5: Southeast, 6:Southwest, 7: Rocky Mountains, 8: Far West, 9: Outlying Areas")
+```
+
+
+
+
+```{r}
+#fit a full model without text variables
+mod_f1 <- lm (ADM_RATE ~ as.factor(NUMBRANCH) + as.factor(HBCU) + as.factor(PBI) + as.factor(TRIBAL) + as.factor(HSI) + as.factor(WOMENONLY) + PFTFAC + AVGFACSAL + PCTPELL + UG25ABV  + FEMALE + COSTT4_A + INC_PCT_LO + PAR_ED_PCT_1STGEN + MD_FAMINC + PCT_WHITE + PCT_BLACK + PCT_ASIAN + PCT_HISPANIC +  PCT_BA + PCT_GRAD_PROF + PCT_BORN_US + POVERTY_RATE + UNEMP_RATE, data = sample1_train)
+```
+
+
+
+
+```{r}
+#assumptions check for the full model.
+par(mfrow=c(4,4))
+plot(sample1_train$ADM_RATE ~ fitted.values(mod_f1), xlab="Fitted values", 
+     ylab = "Admission rate")
+plot(rstandard(mod_f1)~fitted(mod_f1), xlab="Fitted Values", ylab="standard. residuals",main='Assumptions check for full model')
+plot(mod_f1,1)
+plot(mod_f1,2)
+```
+
+
+
+
+```{r}
+#check multicollinearity
+vif(mod_f1)
+#predictors with vif <10 
+mod_q2 <- lm (ADM_RATE ~ as.factor(NUMBRANCH) + as.factor(HBCU) + as.factor(PBI) + as.factor(TRIBAL) + as.factor(HSI) + as.factor(WOMENONLY) + PFTFAC + AVGFACSAL + PCTPELL + UG25ABV  + FEMALE + COSTT4_A  + PAR_ED_PCT_1STGEN + MD_FAMINC  + PCT_ASIAN  +  PCT_BA + PCT_GRAD_PROF + PCT_BORN_US  + UNEMP_RATE, data = sample1_train)
+#check multicollinearity
+car::vif(mod_q2)
+```
+
+
+```{r}
+#reduced model
+par(mfrow=c(4,4))
+plot(sample1_train$ADM_RATE ~ fitted.values(mod_q2), xlab="Fitted values", 
+     ylab = "Admission rate")
+plot(rstandard(mod_q2)~fitted(mod_q2), xlab="Fitted Values", ylab="standard. residuals",main='Assumptions check for reduced model')
+plot(mod_q2,1)
+plot(mod_q2,2)
+```
+
+
+
+
+```{r}
+#using BIC backward
+
+stepAIC(lm (ADM_RATE ~ as.factor(NUMBRANCH) + as.factor(HBCU) + as.factor(PBI) + as.factor(TRIBAL) + as.factor(HSI) + as.factor(WOMENONLY) + PFTFAC + AVGFACSAL + PCTPELL + UG25ABV  + FEMALE + COSTT4_A  + PAR_ED_PCT_1STGEN + MD_FAMINC  + PCT_ASIAN  +  PCT_BA + PCT_GRAD_PROF + PCT_BORN_US  + UNEMP_RATE, data = sample1_train), 
+        scope=list(upper=lm(ADM_RATE ~ 1, data = sample1_train)), 
+        direction = "backward", k=log(nrow(sample1_train)))
+#get model
+
+mod_bicback <- lm(formula = ADM_RATE ~ AVGFACSAL + FEMALE + COSTT4_A + PAR_ED_PCT_1STGEN +  MD_FAMINC + UNEMP_RATE, data = sample1_train)
+
+summary(mod_bicback)
+
+#adj R^2: 21.07%
+```
+
+
+
+
+
+```{r}
+#using BIC forward
+#get model
+mod_bicfor <- lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE, data = sample1_train)
+
+summary(mod_bicfor)
+#adj r^2: 21.07 %
+```
+
+
+
+
+```{r}
+#asumptions check for the model by forward and backward selection
+par(mfrow=c(4,4))
+plot(sample1_train$ADM_RATE ~ fitted.values(mod_bicfor), xlab="Fitted values", 
+     ylab = "Admission rate")
+plot(rstandard(mod_bicfor)~fitted(mod_bicfor), xlab="Fitted Values", ylab="standard. residuals",main='Assumptions check for forward selection')
+plot(mod_bicfor,1)
+plot(mod_bicfor,2)
+
+
+#pairs of each variable.
+lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE, data = sample1_train)
+pairs(sample1_train[,c(13,14,19,20,21,30)], lower.panel=NULL)
+```
+
+
+
+
+```{r}
+#Final model
+model_fin <- lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE, data = sample1_train)
+summary(model_fin)
+```
+
+
+
+
+```{r}
+#plot about final model:making residual versus predictor plots
+par(mfrow=c(4,4))   
+plot(rstandard(model_fin)~sample1_train$AVGFACSAL, xlab="AVGFACSAL", ylab="standard. residuals")
+plot(rstandard(model_fin)~sample1_train$COSTT4_A, xlab="COSTT4_A", ylab="standard. residuals")
+plot(rstandard(model_fin)~sample1_train$UNEMP_RATE, xlab="UNEMP_RATE", ylab="standard. residuals")
+plot(rstandard(model_fin)~sample1_train$FEMALE, xlab="FEMALE", ylab="standard. residuals")
+plot(rstandard(model_fin)~sample1_train$MD_FAMINC, xlab="MD_FAMINC", ylab="standard. residuals")
+plot(rstandard(model_fin)~sample1_train$PAR_ED_PCT_1STGEN, xlab="PAR_ED_PCT_1STGEN", ylab="standard. residuals")
+plot(rstandard(model_fin)~fitted(model_fin), xlab="Fitted Values", ylab="standard. residuals")
+```
+
+
+
+
+
+
+```{r}
+#model validation
+#fit a model with test set
+
+model_test1 <- lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE,  data = sample1_valid)
+
+
+
+#check assumptions
+par(mfrow=c(3,3))
+plot(sample1_valid$ADM_RATE ~ fitted.values(model_test1), xlab="Fitted values", 
+     ylab = "Admission rate")
+plot(rstandard(model_test1)~fitted(model_test1), xlab="Fitted Values", ylab="standard. residuals",main='Model')
+plot(model_test1,1)
+plot(model_test1,2)
+#assumptions satisfied
+```
+
+
+
+```{r}
+#comparing 2 models:
+model_fin <- lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE, data = sample1_train)
+summary(model_fin)
+
+model_test1 <- lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE,  data = sample1_valid)
+summary(model_test1)
+
+```
+
+
+
+
+```{r}
+#model influence
+#leverge points
+h <- hatvalues(model_fin)
+length(h)
+threshold <- 2 * (7/nrow(sample1_train))
+w <- which(h > threshold)
+
+
+# find influence functions using DFFITS values
+fits <- dffits(model_fin)
+cutoff <- 2*sqrt(7/nrow(sample1_train))
+length(fits)
+cutoff
+dff <- which(abs(fits) > cutoff)
+dff
+length(dff)
+dff2 <- which(abs(fits) > 2*cutoff)
+dff2
+
+              
+mod_left <- lm(formula = ADM_RATE ~ AVGFACSAL + COSTT4_A + UNEMP_RATE + MD_FAMINC + 
+    PAR_ED_PCT_1STGEN + FEMALE, data = left_sample)
+summary(mod_left)
+summary(mod_bicfor)
+
+par(mfrow=c(3,3))
+plot(left_sample$ADM_RATE ~ fitted.values(mod_left), xlab="Fitted values", 
+     ylab = "Admission rate")
+plot(rstandard(mod_left)~fitted(mod_left), xlab="Fitted Values", ylab="standard. residuals",main='Model')
+plot(mod_left,1)
+plot(mod_left,2)
+#information of 3 observations
+sample1_train[c(18,382,815),]
+```
+
+
+
+
